@@ -23,7 +23,7 @@ Push to `main`. That's it — GitHub Pages rebuilds automatically (~30-60s)
 and the URL used by Webflow serves the new version (browser cache max 10 min):
 
 ```
-https://amrit-dash.github.io/contour-education-signup-form-hubspot/js/form1.js
+https://contour-tech.github.io/contour-education-signup-form-hubspot/js/form1.js
 ```
 
 Why not jsDelivr `@main`: jsDelivr caches the branch→commit resolution for up
@@ -40,7 +40,7 @@ git tag v1.0.0 && git push origin v1.0.0
 
 The `release-jsdelivr` workflow then verifies jsDelivr serves the tag
 byte-identical and creates a GitHub Release containing the pinned production
-URL (`https://cdn.jsdelivr.net/gh/amrit-dash/contour-education-signup-form-hubspot@v1.0.0/js/form1.js`).
+URL (`https://cdn.jsdelivr.net/gh/contour-tech/contour-education-signup-form-hubspot@v1.0.0/js/form1.js`).
 Paste that URL into the Webflow embed for production; keep the GitHub Pages
 URL for staging.
 
