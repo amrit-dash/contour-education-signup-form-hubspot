@@ -784,6 +784,101 @@ var ContourForm1Logic = function() {
       }, true);
     });
   }
+  var PREFETCH_ENDPOINT = "";
+  var EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  function splitMultiValue(raw) {
+    if (!raw) return [];
+    return String(raw).split(";").map(function(s) {
+      return s.trim();
+    }).filter(function(s) {
+      return s.length > 0;
+    });
+  }
+  function setSelectOrTextValue(selector, value) {
+    var el = q(selector);
+    if (!el || value === undefined || value === null || value === "") return;
+    el.value = value;
+    el.dispatchEvent(new Event("input", {
+      bubbles: true
+    }));
+    el.dispatchEvent(new Event("change", {
+      bubbles: true
+    }));
+  }
+  function setCheckboxValues(selector, values) {
+    if (!values || values.length === 0) return;
+    qAll(selector).forEach(function(opt) {
+      if (values.indexOf(opt.value) !== -1 && !opt.disabled) {
+        setCheckboxChecked(opt, true);
+      }
+    });
+  }
+  function applyPrefill(contact) {
+    setSelectOrTextValue('[name="firstname"]', contact.firstname);
+    setSelectOrTextValue('[name="lastname"]', contact.lastname);
+    setSelectOrTextValue('[name="phone"]', contact.phone);
+    setSelectOrTextValue(FIELD_SELECTORS.location, contact.state_territory_country);
+    setSelectOrTextValue(FIELD_SELECTORS.intakeYear, contact.which_year_are_you_interested_in_tutoring_for_);
+    setSelectOrTextValue(FIELD_SELECTORS.yearLevel, contact.year_level);
+    if (contact.school_text) {
+      setSelectOrTextValue(FIELD_SELECTORS.schoolText, contact.school_text);
+      setSelectOrTextValue(FIELD_SELECTORS.schoolCode, contact.school_code || "");
+      setSelectOrTextValue(FIELD_SELECTORS.acaraId, contact.acara_id || "");
+      var schoolInput = q(FIELD_SELECTORS.schoolText);
+      if (schoolInput) setTimeout(function() {
+        schoolInput.dispatchEvent(new Event("blur"));
+      }, 200);
+    }
+    setCheckboxValues(FIELD_SELECTORS.programInterest, splitMultiValue(contact.program_interest));
+    setCheckboxValues(FIELD_SELECTORS.interestedSubjects, splitMultiValue(contact.web_form__interested_subject));
+    setCheckboxValues(FIELD_SELECTORS.campus, splitMultiValue(contact.web_form__preferred_campuses));
+    setSelectOrTextValue(FIELD_SELECTORS.referral, contact.referral);
+  }
+  function enhanceEmailPrefill() {
+    if (!PREFETCH_ENDPOINT) return;
+    var emailInput = q(FIELD_SELECTORS.emailTemp);
+    if (!emailInput) return;
+    var wrap = fieldWrapper(emailInput) || emailInput.parentElement;
+    var offer = document.createElement("div");
+    offer.id = "contour-prefill-offer";
+    offer.className = "contour-prefill-offer";
+    offer.style.display = "none";
+    var link = document.createElement("a");
+    link.href = "#";
+    link.className = "contour-prefill-offer__link";
+    offer.appendChild(link);
+    wrap.appendChild(offer);
+    var lastFetchedEmail = null;
+    var pendingContact = null;
+    link.addEventListener("click", function(e) {
+      e.preventDefault();
+      if (!pendingContact) return;
+      applyPrefill(pendingContact);
+      offer.style.display = "none";
+    });
+    emailInput.addEventListener("input", function() {
+      offer.style.display = "none";
+      pendingContact = null;
+    });
+    emailInput.addEventListener("blur", function() {
+      var email = emailInput.value.trim();
+      if (!EMAIL_SHAPE.test(email) || email === lastFetchedEmail) return;
+      lastFetchedEmail = email;
+      fetch(PREFETCH_ENDPOINT + "?email=" + encodeURIComponent(email)).then(function(res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      }).then(function(data) {
+        if (!data || !data.found || !data.contact) return;
+        if (emailInput.value.trim() !== email) return;
+        pendingContact = data.contact;
+        var fullName = ((data.contact.firstname || "") + " " + (data.contact.lastname || "")).trim();
+        link.textContent = "Are you " + (fullName || email) + "? Click here to prefill your details.";
+        offer.style.display = "";
+      }).catch(function(err) {
+        console.warn("Contour Form 1 logic: prefetch failed —", err);
+      });
+    });
+  }
   var CALENDLY_URLS = {
     anz: "https://calendly.com/contourmedprep/welcome-consultation-anz",
     uk: "https://calendly.com/contourmedprep/welcome-consultation-uk"
@@ -1338,6 +1433,7 @@ var ContourForm1Logic = function() {
     enforceContactTypeLayoutIfPresent();
     enhanceContactTypeIllustrations();
     enforceEmailTempValidation();
+    enhanceEmailPrefill();
     enforceFieldRequiredValidation("programInterest", "Please select a program.", "contour-program-interest-error", anyProgramInterestOptionEligible);
     enforceFieldRequiredValidation("campus", "Please select a campus.", "contour-campus-error", isFieldWrapVisible);
     enforceFieldRequiredValidation("interestedSubjects", "Please select at least one subject.", "contour-subjects-error", isFieldWrapVisible);
