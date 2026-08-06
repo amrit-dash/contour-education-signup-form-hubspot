@@ -834,48 +834,102 @@ var ContourForm1Logic = function() {
     setCheckboxValues(FIELD_SELECTORS.campus, splitMultiValue(contact.web_form__preferred_campuses));
     setSelectOrTextValue(FIELD_SELECTORS.referral, contact.referral);
   }
+  function prefetchPost(path, payload) {
+    return fetch(PREFETCH_ENDPOINT + path, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    }).then(function(res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    });
+  }
   function enhanceEmailPrefill() {
     if (!PREFETCH_ENDPOINT) return;
     var emailInput = q(FIELD_SELECTORS.emailTemp);
     if (!emailInput) return;
     var wrap = fieldWrapper(emailInput) || emailInput.parentElement;
-    var offer = document.createElement("div");
-    offer.id = "contour-prefill-offer";
-    offer.className = "contour-prefill-offer";
-    offer.style.display = "none";
-    var link = document.createElement("a");
-    link.href = "#";
-    link.className = "contour-prefill-offer__link";
-    offer.appendChild(link);
-    wrap.appendChild(offer);
-    var lastFetchedEmail = null;
-    var pendingContact = null;
-    link.addEventListener("click", function(e) {
-      e.preventDefault();
-      if (!pendingContact) return;
-      applyPrefill(pendingContact);
-      offer.style.display = "none";
-    });
+    var box = document.createElement("div");
+    box.id = "contour-prefill-offer";
+    box.className = "contour-prefill-offer";
+    box.style.display = "none";
+    var message = document.createElement("p");
+    message.className = "contour-prefill-offer__message";
+    box.appendChild(message);
+    var codeRow = document.createElement("div");
+    codeRow.className = "contour-prefill-offer__code-row";
+    codeRow.style.display = "none";
+    var codeInput = document.createElement("input");
+    codeInput.type = "text";
+    codeInput.inputMode = "numeric";
+    codeInput.maxLength = 6;
+    codeInput.placeholder = "6-digit code";
+    codeInput.className = "contour-prefill-offer__code-input";
+    codeRow.appendChild(codeInput);
+    var confirmBtn = document.createElement("button");
+    confirmBtn.type = "button";
+    confirmBtn.textContent = "Prefill my details";
+    confirmBtn.className = "contour-prefill-offer__confirm";
+    codeRow.appendChild(confirmBtn);
+    box.appendChild(codeRow);
+    var errorEl = document.createElement("p");
+    errorEl.className = "contour-prefill-offer__error";
+    errorEl.style.display = "none";
+    box.appendChild(errorEl);
+    wrap.appendChild(box);
+    var lastRequestedEmail = null;
+    function reset() {
+      box.style.display = "none";
+      codeRow.style.display = "none";
+      errorEl.style.display = "none";
+      codeInput.value = "";
+    }
     emailInput.addEventListener("input", function() {
-      offer.style.display = "none";
-      pendingContact = null;
+      reset();
+      lastRequestedEmail = null;
     });
     emailInput.addEventListener("blur", function() {
       var email = emailInput.value.trim();
-      if (!EMAIL_SHAPE.test(email) || email === lastFetchedEmail) return;
-      lastFetchedEmail = email;
-      fetch(PREFETCH_ENDPOINT + "?email=" + encodeURIComponent(email)).then(function(res) {
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
+      if (!EMAIL_SHAPE.test(email) || email === lastRequestedEmail) return;
+      lastRequestedEmail = email;
+      prefetchPost("/request", {
+        email: email
       }).then(function(data) {
-        if (!data || !data.found || !data.contact) return;
+        if (!data || !data.found) return;
         if (emailInput.value.trim() !== email) return;
-        pendingContact = data.contact;
-        var fullName = ((data.contact.firstname || "") + " " + (data.contact.lastname || "")).trim();
-        link.textContent = "Are you " + (fullName || email) + "? Click here to prefill your details.";
-        offer.style.display = "";
+        message.textContent = "Looks like you've signed up with us before. We've emailed a 6-digit code to " + email + " — enter it below to prefill your details.";
+        box.style.display = "";
+        codeRow.style.display = "";
       }).catch(function(err) {
-        console.warn("Contour Form 1 logic: prefetch failed —", err);
+        console.warn("Contour Form 1 logic: prefetch request failed —", err);
+      });
+    });
+    confirmBtn.addEventListener("click", function() {
+      var email = emailInput.value.trim();
+      var code = codeInput.value.trim();
+      if (!code) return;
+      confirmBtn.disabled = true;
+      prefetchPost("/confirm", {
+        email: email,
+        code: code
+      }).then(function(data) {
+        confirmBtn.disabled = false;
+        if (data && data.ok && data.contact) {
+          applyPrefill(data.contact);
+          message.textContent = "Your details have been prefilled from your previous signup. Please review before submitting.";
+          codeRow.style.display = "none";
+          errorEl.style.display = "none";
+          return;
+        }
+        errorEl.textContent = "That code didn't match. Please check the email and try again.";
+        errorEl.style.display = "";
+      }).catch(function(err) {
+        confirmBtn.disabled = false;
+        errorEl.textContent = "Something went wrong verifying the code. Please try again.";
+        errorEl.style.display = "";
+        console.warn("Contour Form 1 logic: prefetch confirm failed —", err);
       });
     });
   }
