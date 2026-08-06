@@ -580,7 +580,7 @@ var ContourForm1Logic = function() {
     if (document.getElementById("contour-disabled-field-styles")) return;
     var style = document.createElement("style");
     style.id = "contour-disabled-field-styles";
-    style.textContent = ".hs-form select:disabled, .hs-form input:disabled { opacity: 0.55; background-color: #f1f0ec; cursor: not-allowed; }" + ".contour-prefill-offer { margin-top: 8px; padding: 12px; border: 1px solid #d8d5cc; border-radius: 8px; background: #faf9f6; }" + ".contour-prefill-offer__message { margin: 0 0 8px; font-size: 14px; }" + ".contour-prefill-offer__code-row { display: flex; gap: 8px; align-items: center; }" + ".contour-prefill-offer__code-input { max-width: 140px; }" + ".contour-prefill-offer__confirm { cursor: pointer; }" + ".contour-prefill-offer__error { margin: 8px 0 0; color: #b3261e; font-size: 13px; }";
+    style.textContent = ".hs-form select:disabled, .hs-form input:disabled { opacity: 0.55; background-color: #f1f0ec; cursor: not-allowed; }" + ".contour-prefill-offer { margin-top: 8px; padding: 12px; border: 1px solid #d8d5cc; border-radius: 8px; background: #faf9f6; }" + ".contour-prefill-offer__message { margin: 0 0 8px; font-size: 14px; }" + ".contour-prefill-offer__code-row { display: flex; gap: 8px; align-items: center; }" + ".contour-prefill-offer__code-input { max-width: 140px; }" + ".contour-prefill-offer__confirm { cursor: pointer; }" + ".contour-prefill-offer__error { margin: 8px 0 0; color: #b3261e; font-size: 13px; }" + ".contour-prefill-banner { margin: 0 0 16px; padding: 12px 16px; border: 1px solid #cfe3cf; border-radius: 8px; background: #f2f8f2; }" + ".contour-prefill-banner__text { margin: 0 0 6px; font-size: 14px; }" + ".contour-prefill-banner__reset { font-size: 13px; text-decoration: underline; cursor: pointer; }" + ".contour-subject-summary { margin: 20px 0; padding: 16px; border: 1px solid #d8d5cc; border-radius: 8px; background: #faf9f6; }" + ".contour-subject-summary__heading { font-weight: 600; margin-bottom: 10px; }" + ".contour-subject-summary__grid { display: flex; flex-wrap: wrap; gap: 20px; }" + ".contour-subject-summary__col { flex: 1 1 180px; min-width: 150px; }" + ".contour-subject-summary__col-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }" + ".contour-subject-summary__list { margin: 0; padding-left: 18px; font-size: 13px; }" + ".contour-subject-summary__list li { margin-bottom: 4px; }";
     document.head.appendChild(style);
   }
   function getClassification(inputEl) {
@@ -785,7 +785,11 @@ var ContourForm1Logic = function() {
     });
   }
   var PREFETCH_ENDPOINT = "";
+  var PREFETCH_OTP_ENABLED = false;
+  var STUDENT_ID_PARAM = "student_id";
   var EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var prefetchedTrialSubjectCodes = [];
+  var prefetchedEnrolledSubjectCodes = [];
   function splitMultiValue(raw) {
     if (!raw) return [];
     return String(raw).split(";").map(function(s) {
@@ -805,12 +809,15 @@ var ContourForm1Logic = function() {
       bubbles: true
     }));
   }
-  function setCheckboxValues(selector, values) {
+  function setCheckboxValues(selector, values, excludeCodes) {
     if (!values || values.length === 0) return;
     qAll(selector).forEach(function(opt) {
-      if (values.indexOf(opt.value) !== -1 && !opt.disabled) {
-        setCheckboxChecked(opt, true);
+      if (values.indexOf(opt.value) === -1 || opt.disabled) return;
+      if (excludeCodes && excludeCodes.length > 0) {
+        var parsed = parseStructuredSubjectValue(opt.value);
+        if (parsed && excludeCodes.indexOf(parsed.code) !== -1) return;
       }
+      setCheckboxChecked(opt, true);
     });
   }
   function applyPrefill(contact) {
@@ -830,9 +837,92 @@ var ContourForm1Logic = function() {
       }, 200);
     }
     setCheckboxValues(FIELD_SELECTORS.programInterest, splitMultiValue(contact.program_interest));
-    setCheckboxValues(FIELD_SELECTORS.interestedSubjects, splitMultiValue(contact.web_form__interested_subject));
+    var excludeCodes = prefetchedTrialSubjectCodes.concat(prefetchedEnrolledSubjectCodes);
+    setCheckboxValues(FIELD_SELECTORS.interestedSubjects, splitMultiValue(contact.web_form__interested_subject), excludeCodes);
     setCheckboxValues(FIELD_SELECTORS.campus, splitMultiValue(contact.web_form__preferred_campuses));
     setSelectOrTextValue(FIELD_SELECTORS.referral, contact.referral);
+  }
+  function getUrlParam(name) {
+    var match = new RegExp("[?&]" + name + "=([^&#]*)").exec(window.location.search);
+    return match ? decodeURIComponent(match[1].replace(/\+/g, " ")) : "";
+  }
+  function clearFormForNewUser() {
+    qAll('input[type="checkbox"]').forEach(function(opt) {
+      setCheckboxChecked(opt, false);
+    });
+    qAll("select").forEach(function(sel) {
+      if (!sel.value) return;
+      sel.value = "";
+      sel.dispatchEvent(new Event("change", {
+        bubbles: true
+      }));
+    });
+    qAll('input[type="text"], input[type="email"], input[type="tel"], input[type="number"]').forEach(function(inp) {
+      if (!inp.value) return;
+      inp.value = "";
+      inp.dispatchEvent(new Event("input", {
+        bubbles: true
+      }));
+      inp.dispatchEvent(new Event("change", {
+        bubbles: true
+      }));
+    });
+    prefetchedTrialSubjectCodes = [];
+    prefetchedEnrolledSubjectCodes = [];
+    setFieldLabelText("interestedSubjects", "Interested Subjects");
+    var banner = formRoot.querySelector("#contour-prefill-banner");
+    if (banner) banner.parentNode.removeChild(banner);
+    evaluateProgramInterestOptions();
+    evaluateInterestedSubjectsOptions();
+    evaluateCampusOptions();
+    evaluateYearLevelOptions();
+    evaluateSchoolFieldVisibility();
+    evaluateIntakeYearDependents();
+    renderWelcomeConsultation();
+    renderSubjectSummary();
+  }
+  function renderPrefillBanner(fullName) {
+    var existing = formRoot.querySelector("#contour-prefill-banner");
+    if (existing) existing.parentNode.removeChild(existing);
+    var banner = document.createElement("div");
+    banner.id = "contour-prefill-banner";
+    banner.className = "contour-prefill-banner";
+    var text = document.createElement("p");
+    text.className = "contour-prefill-banner__text";
+    text.textContent = "This form has been prefilled" + (fullName ? " for " + fullName : "") + " from our records. Please review the details before submitting.";
+    banner.appendChild(text);
+    var resetLink = document.createElement("a");
+    resetLink.href = "#";
+    resetLink.className = "contour-prefill-banner__reset";
+    resetLink.textContent = "Not you, or want to start fresh? Clear the form.";
+    resetLink.addEventListener("click", function(e) {
+      e.preventDefault();
+      clearFormForNewUser();
+    });
+    banner.appendChild(resetLink);
+    formRoot.insertBefore(banner, formRoot.firstChild);
+  }
+  function initPrefetchFromUrl() {
+    if (!PREFETCH_ENDPOINT) return;
+    var studentId = getUrlParam(STUDENT_ID_PARAM);
+    if (!studentId) return;
+    fetch(PREFETCH_ENDPOINT + "/prefetch?studentId=" + encodeURIComponent(studentId)).then(function(res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    }).then(function(data) {
+      if (!data || !data.found || !data.contact) return;
+      prefetchedTrialSubjectCodes = data.trialSubjectCodes || [];
+      prefetchedEnrolledSubjectCodes = data.enrolledSubjectCodes || [];
+      applyPrefill(data.contact);
+      var fullName = ((data.contact.firstname || "") + " " + (data.contact.lastname || "")).trim();
+      renderPrefillBanner(fullName);
+      if (prefetchedTrialSubjectCodes.length > 0 || prefetchedEnrolledSubjectCodes.length > 0) {
+        setFieldLabelText("interestedSubjects", "Additional Subjects");
+      }
+      renderSubjectSummary();
+    }).catch(function(err) {
+      console.warn("Contour Form 1 logic: URL prefetch failed —", err);
+    });
   }
   function prefetchPost(path, payload) {
     return fetch(PREFETCH_ENDPOINT + path, {
@@ -847,7 +937,7 @@ var ContourForm1Logic = function() {
     });
   }
   function enhanceEmailPrefill() {
-    if (!PREFETCH_ENDPOINT) return;
+    if (!PREFETCH_ENDPOINT || !PREFETCH_OTP_ENABLED) return;
     var emailInput = q(FIELD_SELECTORS.emailTemp);
     if (!emailInput) return;
     var wrap = fieldWrapper(emailInput) || emailInput.parentElement;
@@ -1033,6 +1123,77 @@ var ContourForm1Logic = function() {
       });
     });
   }
+  function subjectCodeToLabel(code) {
+    var options = qAll(FIELD_SELECTORS.interestedSubjects);
+    for (var i = 0; i < options.length; i++) {
+      var parsed = parseStructuredSubjectValue(options[i].value);
+      if (parsed && parsed.code === code) return optionLabelText(options[i]);
+    }
+    return code;
+  }
+  function ensureSubjectSummary() {
+    var existing = formRoot.querySelector("#contour-subject-summary");
+    if (existing) return existing;
+    var container = document.createElement("div");
+    container.id = "contour-subject-summary";
+    container.className = "contour-subject-summary";
+    container.style.display = "none";
+    var heading = document.createElement("div");
+    heading.className = "contour-subject-summary__heading";
+    heading.textContent = "Your Subjects";
+    container.appendChild(heading);
+    var grid = document.createElement("div");
+    grid.className = "contour-subject-summary__grid";
+    container.appendChild(grid);
+    var submitBlock = formRoot.querySelector(".hs-submit");
+    if (submitBlock && submitBlock.parentNode) {
+      submitBlock.parentNode.insertBefore(container, submitBlock);
+    } else {
+      formRoot.appendChild(container);
+    }
+    return container;
+  }
+  function renderSubjectSummary() {
+    var container = ensureSubjectSummary();
+    var grid = container.querySelector(".contour-subject-summary__grid");
+    var interested = qAll(FIELD_SELECTORS.interestedSubjects + ":checked").map(function(opt) {
+      return optionLabelText(opt);
+    });
+    var trialing = prefetchedTrialSubjectCodes.map(subjectCodeToLabel);
+    var enrolled = prefetchedEnrolledSubjectCodes.map(subjectCodeToLabel);
+    var columns = [{
+      title: "Interested Subject" + (interested.length === 1 ? "" : "s"),
+      items: interested
+    }, {
+      title: "Trialing Subject" + (trialing.length === 1 ? "" : "s"),
+      items: trialing
+    }, {
+      title: "Enrolled Subject" + (enrolled.length === 1 ? "" : "s"),
+      items: enrolled
+    }];
+    grid.innerHTML = "";
+    var anyColumn = false;
+    columns.forEach(function(col) {
+      if (col.items.length === 0) return;
+      anyColumn = true;
+      var colEl = document.createElement("div");
+      colEl.className = "contour-subject-summary__col";
+      var title = document.createElement("div");
+      title.className = "contour-subject-summary__col-title";
+      title.textContent = col.title;
+      colEl.appendChild(title);
+      var list = document.createElement("ul");
+      list.className = "contour-subject-summary__list";
+      col.items.forEach(function(label) {
+        var li = document.createElement("li");
+        li.textContent = label;
+        list.appendChild(li);
+      });
+      colEl.appendChild(list);
+      grid.appendChild(colEl);
+    });
+    container.style.display = anyColumn ? "" : "none";
+  }
   function attachListeners() {
     var locationEl = q(FIELD_SELECTORS.location);
     if (locationEl) {
@@ -1057,6 +1218,7 @@ var ContourForm1Logic = function() {
       el.addEventListener("change", function() {
         evaluateSubjectExclusions();
         renderWelcomeConsultation();
+        renderSubjectSummary();
       });
     });
     var yearLevelEl = q(FIELD_SELECTORS.yearLevel);
@@ -1500,6 +1662,8 @@ var ContourForm1Logic = function() {
     evaluateSchoolFieldVisibility();
     evaluateIntakeYearDependents();
     renderWelcomeConsultation();
+    renderSubjectSummary();
+    initPrefetchFromUrl();
   }
   return {
     init: init
