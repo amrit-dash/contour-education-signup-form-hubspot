@@ -361,6 +361,9 @@ var ContourForm1Logic = function() {
     }
     return false;
   }
+  function hasNativeRequiredMark(fieldWrap) {
+    return !!fieldWrap.querySelector('label .hs-form-required:not([class*="contour-"])');
+  }
   function createRequiredMarkUpdater(fieldSelectorKey, className) {
     var mark = null;
     return function(shouldShow) {
@@ -368,6 +371,7 @@ var ContourForm1Logic = function() {
         var field = q(FIELD_SELECTORS[fieldSelectorKey]);
         var fieldWrap = field ? fieldWrapper(field) : null;
         if (!fieldWrap) return;
+        if (hasNativeRequiredMark(fieldWrap)) return;
         var label = fieldWrap.querySelector("label");
         mark = document.createElement("span");
         mark.className = "hs-form-required " + className;
@@ -885,6 +889,7 @@ var ContourForm1Logic = function() {
   function enhanceSchoolSearch() {
     var input = q(FIELD_SELECTORS.schoolText);
     if (!input) return;
+    if (input.closest(".contour-school-search")) return;
     var codeInput = q(FIELD_SELECTORS.schoolCode);
     var acaraInput = q(FIELD_SELECTORS.acaraId);
     var wrapper = document.createElement("div");
@@ -1097,6 +1102,20 @@ var ContourForm1Logic = function() {
     });
     loadSchoolList();
   }
+  function watchSchoolFieldRerender() {
+    // HubSpot v2 embeds re-render a field's DOM when native validation fires,
+    // destroying the injected combobox — detect that and re-apply.
+    var observer = new MutationObserver(function() {
+      var input = q(FIELD_SELECTORS.schoolText);
+      if (input && !input.closest(".contour-school-search")) {
+        enhanceSchoolSearch();
+      }
+    });
+    observer.observe(formRoot, {
+      childList: true,
+      subtree: true
+    });
+  }
   function isFieldWrapVisible(fieldWrap) {
     return fieldWrap.style.display !== "none";
   }
@@ -1114,6 +1133,7 @@ var ContourForm1Logic = function() {
     if (options.length === 0) return;
     var fieldWrap = fieldWrapper(options[0]);
     if (!fieldWrap) return;
+    if (hasNativeRequiredMark(fieldWrap)) return;
     function defaultSatisfied() {
       return qAll(FIELD_SELECTORS[fieldSelectorKey]).some(function(opt) {
         return opt.checked;
@@ -1219,6 +1239,7 @@ var ContourForm1Logic = function() {
     enhanceProgramInterestCards();
     enhanceInterestedSubjectsCategories();
     enhanceSchoolSearch();
+    watchSchoolFieldRerender();
     enhanceCampusLabels();
     ensureDividerBefore(q(FIELD_SELECTORS.programInterest), "contour-divider-program-interest");
     ensureDividerBefore(q(FIELD_SELECTORS.referral), "contour-divider-referral");
