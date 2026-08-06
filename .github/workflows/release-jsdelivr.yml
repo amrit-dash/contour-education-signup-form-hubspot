@@ -34,6 +34,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           URL="https://cdn.jsdelivr.net/gh/${GITHUB_REPOSITORY}@${GITHUB_REF_NAME}/js/form1.js"
+          PAGES_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/js/form1.js"
           gh release create "${GITHUB_REF_NAME}" \
             --title "Form 1 logic ${GITHUB_REF_NAME}" \
             --notes "**Production (pinned, immutable) URL:**
@@ -46,7 +47,7 @@ jobs:
 
           **Staging URL (auto-updates on push to main):**
           \`\`\`
-          https://amrit-dash.github.io/contour-education-signup-form-hubspot/js/form1.js
+          ${PAGES_URL}
           \`\`\`
 
           To ship to production: replace the script src in the Webflow Code Embed with the pinned URL above."
