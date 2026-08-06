@@ -9,21 +9,29 @@ Staging page: https://contour-staging.webflow.io/free-trial-hubspot
 ## Structure
 
 ```
-js/form1.js       Form logic (loaded by Webflow via jsDelivr)
-css/form1.css     Reference copy of the custom CSS (live copy lives in Webflow page header)
+js/form1.js         Form logic (loaded by Webflow via jsDelivr)
+css/form1.css       Reference copy of the custom CSS (live copy lives in Webflow page header)
 webflow/embed.html  The Code Embed snippet pasted into Webflow
-docs/             Handoff notes, field reference, requirements, snapshots
+.github/workflows/  jsDelivr cache purge on push
 ```
+
+Internal docs and the HubSpot properties spreadsheet are kept local only
+(gitignored) — this repo is public because jsDelivr requires it.
 
 ## Deploying
 
-1. Merge changes to `main`.
-2. Tag a release: `git tag v0.x.y && git push --tags`
-3. Update the tag in the Webflow embed URL:
-   `https://cdn.jsdelivr.net/gh/<ORG>/<REPO>@v0.x.y/js/form1.js`
+Push to `main`. That's it — the CDN URL used by Webflow is:
 
-**Always pin to a tag or commit SHA — never `@main`.** jsDelivr caches `@main`
-aggressively; changes will silently not appear.
+```
+https://cdn.jsdelivr.net/gh/amrit-dash/contour-education-signup-form-hubspot@main/js/form1.js
+```
+
+A GitHub Action purges the jsDelivr cache whenever `js/` changes, so pushes
+go live within ~30s. If a change seems stale, check the Action run, or purge
+manually: `curl https://purge.jsdelivr.net/gh/amrit-dash/contour-education-signup-form-hubspot@main/js/form1.js`
+
+**Production cutover:** switch the Webflow URL from `@main` to a pinned
+release tag (`@v1.0.0`) for stability, and tag releases from then on.
 
 Publish to Webflow **staging only** unless the web team is looped in.
 

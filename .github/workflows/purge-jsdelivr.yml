@@ -1,0 +1,16 @@
+name: Purge jsDelivr cache
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "js/**"
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Purge js/form1.js on jsDelivr
+        run: |
+          curl -fsS "https://purge.jsdelivr.net/gh/amrit-dash/contour-education-signup-form-hubspot@main/js/form1.js"
+          echo "Purged. New version live on CDN within ~30s."

@@ -3,9 +3,10 @@
   Paste this into the contact-form_embed Code Embed on the Free Trial page,
   replacing the current ~50k-char inline version.
 
-  Replace <ORG>, <REPO>, <TAG> in the jsDelivr URL below.
-  ALWAYS pin to a release tag or commit SHA — never @main (jsDelivr caches
-  @main aggressively; changes will appear not to deploy).
+  URL points at @main. A GitHub Action purges the jsDelivr cache on every
+  push that touches js/, so changes go live within ~30s of pushing.
+  For the production cutover, switch @main to a pinned release tag
+  (e.g. @v1.0.0) for stability.
 
   CSS stays in the Webflow page header code — unchanged.
   The Cal.com booking widget script on the page is separate — do not touch.
@@ -15,7 +16,7 @@
 
 <script charset="utf-8" type="text/javascript" src="https://js-ap1.hsforms.net/forms/embed/v2.js"></script>
 
-<script src="https://cdn.jsdelivr.net/gh/<ORG>/<REPO>@<TAG>/js/form1.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/amrit-dash/contour-education-signup-form-hubspot@main/js/form1.js"></script>
 
 <script>
   hbspt.forms.create({
