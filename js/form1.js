@@ -883,16 +883,40 @@ var ContourForm1Logic = function() {
     }
     applyingPendingPrefill = false;
   }
-  function applyPrefill(contact) {
+  function setTextWhenPresent(selector, value, tries) {
+    if (value === undefined || value === null || value === "") return;
+    var el = q(selector);
+    if (el) {
+      setSelectOrTextValue(selector, value);
+      return;
+    }
+    if (tries <= 0) return;
+    setTimeout(function() {
+      setTextWhenPresent(selector, value, tries - 1);
+    }, 150);
+  }
+  function applyPrefill(contact, guardian) {
     if (contact.web_form_contact_type) {
       qAll(FIELD_SELECTORS.contactType).forEach(function(radio) {
         if (radio.value === contact.web_form_contact_type) setCheckboxChecked(radio, true);
       });
     }
-    setSelectOrTextValue('[name="firstname"]', contact.firstname);
-    setSelectOrTextValue('[name="lastname"]', contact.lastname);
-    setSelectOrTextValue(FIELD_SELECTORS.emailTemp, contact.email_2 || contact.email);
-    setSelectOrTextValue('[name="phone"]', contact.phone);
+    if (contact.web_form_contact_type === "Guardian") {
+      var g = guardian || {};
+      setSelectOrTextValue('[name="firstname"]', g.firstname);
+      setSelectOrTextValue('[name="lastname"]', g.lastname);
+      setSelectOrTextValue(FIELD_SELECTORS.emailTemp, g.email_2 || g.email);
+      setSelectOrTextValue('[name="phone"]', g.phone);
+      setTextWhenPresent('[name="student_first_name"]', contact.firstname, 10);
+      setTextWhenPresent('[name="student_last_name"]', contact.lastname, 10);
+      setTextWhenPresent('[name="student_email"]', contact.email_2 || contact.email, 10);
+      setTextWhenPresent('[name="student_phone"]', contact.phone, 10);
+    } else {
+      setSelectOrTextValue('[name="firstname"]', contact.firstname);
+      setSelectOrTextValue('[name="lastname"]', contact.lastname);
+      setSelectOrTextValue(FIELD_SELECTORS.emailTemp, contact.email_2 || contact.email);
+      setSelectOrTextValue('[name="phone"]', contact.phone);
+    }
     setSelectOrTextValue(FIELD_SELECTORS.location, contact.state_territory_country);
     setSelectOrTextValue(FIELD_SELECTORS.intakeYear, contact.which_year_are_you_interested_in_tutoring_for_);
     setSelectOrTextValue(FIELD_SELECTORS.yearLevel, contact.year_level);
@@ -991,7 +1015,7 @@ var ContourForm1Logic = function() {
       if (data && data.found && data.contact) {
         prefetchedTrialSubjectCodes = data.trialSubjectCodes || [];
         prefetchedEnrolledSubjectCodes = data.enrolledSubjectCodes || [];
-        applyPrefill(data.contact);
+        applyPrefill(data.contact, data.guardian);
         var fullName = ((data.contact.firstname || "") + " " + (data.contact.lastname || "")).trim();
         renderPrefillBanner(fullName);
         if (prefetchedTrialSubjectCodes.length > 0 || prefetchedEnrolledSubjectCodes.length > 0) {

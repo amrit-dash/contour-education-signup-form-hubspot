@@ -71,6 +71,33 @@ async function hubspotBatchRead(objectType, ids, properties) {
   return data.results || [];
 }
 
+async function associatedGuardian(contactId) {
+  const assoc = await hubspotGet(
+    `/crm/v4/objects/contacts/${contactId}/associations/contacts?limit=100`
+  );
+  const results = (assoc && assoc.results) || [];
+  let guardianId = null;
+  for (const r of results) {
+    const labels = (r.associationTypes || []).map((t) => t.label || "");
+    if (labels.some((l) => /primary\s*guardian/i.test(l))) {
+      guardianId = r.toObjectId;
+      break;
+    }
+    if (!guardianId && labels.some((l) => /guardian/i.test(l))) {
+      guardianId = r.toObjectId;
+    }
+  }
+  if (!guardianId) return null;
+  const records = await hubspotBatchRead("contacts", [guardianId], [
+    "firstname",
+    "lastname",
+    "email",
+    "email_2",
+    "phone"
+  ]);
+  return records[0] ? records[0].properties || null : null;
+}
+
 async function associatedSubjectCodes(contactId, objectType) {
   const assoc = await hubspotGet(
     `/crm/v4/objects/contacts/${contactId}/associations/${objectType}?limit=100`
@@ -110,9 +137,10 @@ functions.http("prefetch", async (req, res) => {
     );
     if (!contact) return res.json({ found: false });
 
-    const [trialSubjectCodes, enrolledSubjectCodes] = await Promise.all([
+    const [trialSubjectCodes, enrolledSubjectCodes, guardian] = await Promise.all([
       associatedSubjectCodes(studentId, TRIALS_OBJECT_TYPE),
-      associatedSubjectCodes(studentId, ENROLMENTS_OBJECT_TYPE)
+      associatedSubjectCodes(studentId, ENROLMENTS_OBJECT_TYPE),
+      associatedGuardian(studentId)
     ]);
 
     const props = contact.properties || {};
@@ -122,6 +150,13 @@ functions.http("prefetch", async (req, res) => {
     return res.json({
       found: true,
       contact: out,
+      guardian: guardian ? {
+        firstname: guardian.firstname || "",
+        lastname: guardian.lastname || "",
+        email: guardian.email || "",
+        email_2: guardian.email_2 || "",
+        phone: guardian.phone || ""
+      } : null,
       trialSubjectCodes,
       enrolledSubjectCodes
     });
