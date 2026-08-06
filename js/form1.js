@@ -1177,6 +1177,31 @@ var ContourForm1Logic = function() {
       subtree: true
     });
   }
+  var pendingErrorScrolls = null;
+  function scrollErrorIntoView(el) {
+    if (!el) return;
+    if (pendingErrorScrolls) {
+      pendingErrorScrolls.push(el);
+      return;
+    }
+    pendingErrorScrolls = [el];
+    setTimeout(function() {
+      var best = null;
+      var bestTop = null;
+      for (var i = 0; i < pendingErrorScrolls.length; i++) {
+        var top = pendingErrorScrolls[i].getBoundingClientRect().top;
+        if (bestTop === null || top < bestTop) {
+          bestTop = top;
+          best = pendingErrorScrolls[i];
+        }
+      }
+      pendingErrorScrolls = null;
+      if (best && best.scrollIntoView) best.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+    }, 0);
+  }
   function isFieldWrapVisible(fieldWrap) {
     return fieldWrap.style.display !== "none";
   }
@@ -1217,6 +1242,7 @@ var ContourForm1Logic = function() {
     fieldWrap.appendChild(errorList);
     function showError() {
       errorList.style.display = "";
+      scrollErrorIntoView(fieldWrap);
     }
     function clearError() {
       errorList.style.display = "none";
@@ -1280,6 +1306,7 @@ var ContourForm1Logic = function() {
           e.preventDefault();
           e.stopImmediatePropagation();
           showError();
+          scrollErrorIntoView(fieldWrapper(input) || input);
           input.focus();
         }
       }, true);
