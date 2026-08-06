@@ -848,20 +848,50 @@ var ContourForm1Logic = function() {
       bubbles: true
     }));
   }
-  function setCheckboxValues(selector, values, excludeCodes) {
-    if (!values || values.length === 0) return;
-    qAll(selector).forEach(function(opt) {
-      if (values.indexOf(opt.value) === -1 || opt.disabled) return;
+  function attemptCheckboxValues(selector, values, excludeCodes) {
+    if (!values || values.length === 0) return [];
+    var remaining = [];
+    values.forEach(function(value) {
       if (excludeCodes && excludeCodes.length > 0) {
-        var parsed = parseStructuredSubjectValue(opt.value);
+        var parsed = parseStructuredSubjectValue(value);
         if (parsed && excludeCodes.indexOf(parsed.code) !== -1) return;
       }
-      setCheckboxChecked(opt, true);
+      var applied = false;
+      qAll(selector).forEach(function(opt) {
+        if (applied || opt.value !== value) return;
+        var wrap = optionWrapper(opt);
+        var visible = !wrap || wrap.style.display !== "none";
+        if (opt.disabled || !visible) return;
+        setCheckboxChecked(opt, true);
+        applied = true;
+      });
+      if (!applied) remaining.push(value);
     });
+    return remaining;
+  }
+  var pendingPrefill = null;
+  var applyingPendingPrefill = false;
+  function applyPendingPrefill() {
+    if (!pendingPrefill || applyingPendingPrefill) return;
+    applyingPendingPrefill = true;
+    var excludeCodes = prefetchedTrialSubjectCodes.concat(prefetchedEnrolledSubjectCodes);
+    pendingPrefill.programs = attemptCheckboxValues(FIELD_SELECTORS.programInterest, pendingPrefill.programs);
+    pendingPrefill.subjects = attemptCheckboxValues(FIELD_SELECTORS.interestedSubjects, pendingPrefill.subjects, excludeCodes);
+    pendingPrefill.campuses = attemptCheckboxValues(FIELD_SELECTORS.campus, pendingPrefill.campuses);
+    if (pendingPrefill.programs.length === 0 && pendingPrefill.subjects.length === 0 && pendingPrefill.campuses.length === 0) {
+      pendingPrefill = null;
+    }
+    applyingPendingPrefill = false;
   }
   function applyPrefill(contact) {
+    if (contact.web_form_contact_type) {
+      qAll(FIELD_SELECTORS.contactType).forEach(function(radio) {
+        if (radio.value === contact.web_form_contact_type) setCheckboxChecked(radio, true);
+      });
+    }
     setSelectOrTextValue('[name="firstname"]', contact.firstname);
     setSelectOrTextValue('[name="lastname"]', contact.lastname);
+    setSelectOrTextValue(FIELD_SELECTORS.emailTemp, contact.email_2 || contact.email);
     setSelectOrTextValue('[name="phone"]', contact.phone);
     setSelectOrTextValue(FIELD_SELECTORS.location, contact.state_territory_country);
     setSelectOrTextValue(FIELD_SELECTORS.intakeYear, contact.which_year_are_you_interested_in_tutoring_for_);
@@ -875,10 +905,12 @@ var ContourForm1Logic = function() {
         schoolInput.dispatchEvent(new Event("blur"));
       }, 200);
     }
-    setCheckboxValues(FIELD_SELECTORS.programInterest, splitMultiValue(contact.program_interest));
-    var excludeCodes = prefetchedTrialSubjectCodes.concat(prefetchedEnrolledSubjectCodes);
-    setCheckboxValues(FIELD_SELECTORS.interestedSubjects, splitMultiValue(contact.web_form__interested_subject), excludeCodes);
-    setCheckboxValues(FIELD_SELECTORS.campus, splitMultiValue(contact.web_form__preferred_campuses));
+    pendingPrefill = {
+      programs: splitMultiValue(contact.program_interest),
+      subjects: splitMultiValue(contact.web_form__interested_subject),
+      campuses: splitMultiValue(contact.web_form__preferred_campuses)
+    };
+    applyPendingPrefill();
     setSelectOrTextValue(FIELD_SELECTORS.referral, contact.referral);
   }
   function getUrlParam(name) {
@@ -908,6 +940,7 @@ var ContourForm1Logic = function() {
     });
     prefetchedTrialSubjectCodes = [];
     prefetchedEnrolledSubjectCodes = [];
+    pendingPrefill = null;
     setFieldLabelText("interestedSubjects", "Interested Subjects");
     var banner = formRoot.querySelector("#contour-prefill-banner");
     if (banner) banner.parentNode.removeChild(banner);
@@ -1240,6 +1273,7 @@ var ContourForm1Logic = function() {
         evaluateSchoolFieldVisibility();
         evaluateIntakeYearDependents();
         renderWelcomeConsultation();
+        applyPendingPrefill();
       });
     }
     qAll(FIELD_SELECTORS.programInterest).forEach(function(el) {
@@ -1247,6 +1281,7 @@ var ContourForm1Logic = function() {
         evaluateInterestedSubjectsOptions();
         evaluateCampusOptions();
         renderWelcomeConsultation();
+        applyPendingPrefill();
       });
     });
     qAll(FIELD_SELECTORS.interestedSubjects).forEach(function(el) {
@@ -1261,6 +1296,7 @@ var ContourForm1Logic = function() {
       yearLevelEl.addEventListener("change", function() {
         evaluateProgramInterestOptions();
         evaluateInterestedSubjectsOptions();
+        applyPendingPrefill();
       });
     }
     var intakeYearEl = q(FIELD_SELECTORS.intakeYear);
@@ -1270,6 +1306,7 @@ var ContourForm1Logic = function() {
         evaluateInterestedSubjectsOptions();
         evaluateYearLevelOptions();
         evaluateIntakeYearDependents();
+        applyPendingPrefill();
       });
     }
   }

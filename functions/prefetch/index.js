@@ -9,8 +9,11 @@ const ENROLMENTS_OBJECT_TYPE = "deals";
 const SUBJECT_CODE_PROPERTY = "subject_code";
 
 const CONTACT_PROPERTIES = [
+  "web_form_contact_type",
   "firstname",
   "lastname",
+  "email",
+  "email_2",
   "phone",
   "state_territory_country",
   "which_year_are_you_interested_in_tutoring_for_",
