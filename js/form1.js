@@ -784,7 +784,7 @@ var ContourForm1Logic = function() {
       }, true);
     });
   }
-  var PREFETCH_ENDPOINT = "";
+  var PREFETCH_ENDPOINT = "https://australia-southeast1-hubspot-signup-form.cloudfunctions.net/contour-form1-prefetch";
   var PREFETCH_OTP_ENABLED = false;
   var STUDENT_ID_PARAM = "student_id";
   var EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
