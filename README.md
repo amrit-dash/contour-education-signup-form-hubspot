@@ -28,9 +28,21 @@ https://amrit-dash.github.io/contour-education-signup-form-hubspot/js/form1.js
 
 Why not jsDelivr `@main`: jsDelivr caches the branch→commit resolution for up
 to 12 hours and the purge API does not clear that layer — pushes silently
-don't appear. Pinned jsDelivr tag URLs are safe (immutable), and remain an
-option for a frozen production version at cutover:
-`https://cdn.jsdelivr.net/gh/amrit-dash/contour-education-signup-form-hubspot@v1.0.0/js/form1.js`
+don't appear. Pinned jsDelivr tag URLs are safe (immutable).
+
+## Production releases
+
+Push a version tag:
+
+```
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+The `release-jsdelivr` workflow then verifies jsDelivr serves the tag
+byte-identical and creates a GitHub Release containing the pinned production
+URL (`https://cdn.jsdelivr.net/gh/amrit-dash/contour-education-signup-form-hubspot@v1.0.0/js/form1.js`).
+Paste that URL into the Webflow embed for production; keep the GitHub Pages
+URL for staging.
 
 Publish to Webflow **staging only** unless the web team is looped in.
 
