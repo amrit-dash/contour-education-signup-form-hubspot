@@ -580,7 +580,7 @@ var ContourForm1Logic = function() {
     if (document.getElementById("contour-disabled-field-styles")) return;
     var style = document.createElement("style");
     style.id = "contour-disabled-field-styles";
-    style.textContent = ".hs-form select:disabled, .hs-form input:disabled { opacity: 0.55; background-color: #f1f0ec; cursor: not-allowed; }" + ".contour-prefill-offer { margin-top: 8px; padding: 12px; border: 1px solid #d8d5cc; border-radius: 8px; background: #faf9f6; }" + ".contour-prefill-offer__message { margin: 0 0 8px; font-size: 14px; }" + ".contour-prefill-offer__code-row { display: flex; gap: 8px; align-items: center; }" + ".contour-prefill-offer__code-input { max-width: 140px; }" + ".contour-prefill-offer__confirm { cursor: pointer; }" + ".contour-prefill-offer__error { margin: 8px 0 0; color: #b3261e; font-size: 13px; }" + ".contour-prefill-banner { margin: 0 0 16px; padding: 12px 16px; border: 1px solid #cfe3cf; border-radius: 8px; background: #f2f8f2; }" + ".contour-prefill-banner__text { margin: 0 0 6px; font-size: 14px; }" + ".contour-prefill-banner__reset { font-size: 13px; text-decoration: underline; cursor: pointer; }" + ".contour-subject-summary { margin: 20px 0; padding: 16px; border: 1px solid #d8d5cc; border-radius: 8px; background: #faf9f6; }" + ".contour-subject-summary__heading { font-weight: 600; margin-bottom: 10px; }" + ".contour-subject-summary__grid { display: flex; flex-wrap: wrap; gap: 20px; }" + ".contour-subject-summary__col { flex: 1 1 180px; min-width: 150px; }" + ".contour-subject-summary__col-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }" + ".contour-subject-summary__list { margin: 0; padding-left: 18px; font-size: 13px; }" + ".contour-subject-summary__list li { margin-bottom: 4px; }";
+    style.textContent = ".hs-form select:disabled, .hs-form input:disabled { opacity: 0.55; background-color: #f1f0ec; cursor: not-allowed; }" + ".contour-prefill-offer { margin-top: 8px; padding: 12px; border: 1px solid #d8d5cc; border-radius: 8px; background: #faf9f6; }" + ".contour-prefill-offer__message { margin: 0 0 8px; font-size: 14px; }" + ".contour-prefill-offer__code-row { display: flex; gap: 8px; align-items: center; }" + ".contour-prefill-offer__code-input { max-width: 140px; }" + ".contour-prefill-offer__confirm { cursor: pointer; }" + ".contour-prefill-offer__error { margin: 8px 0 0; color: #b3261e; font-size: 13px; }" + ".contour-prefill-banner { margin: 0 0 16px; padding: 12px 16px; border: 1px solid #cfe3cf; border-radius: 8px; background: #f2f8f2; }" + ".contour-prefill-banner__text { margin: 0 0 6px; font-size: 14px; }" + ".contour-prefill-banner__reset { font-size: 13px; text-decoration: underline; cursor: pointer; }" + ".contour-subject-summary { margin: 20px 0; padding: 16px; border: 1px solid #d8d5cc; border-radius: 8px; background: #faf9f6; }" + ".contour-subject-summary__heading { font-weight: 600; margin-bottom: 10px; }" + ".contour-subject-summary__grid { display: flex; flex-wrap: wrap; gap: 20px; }" + ".contour-subject-summary__col { flex: 1 1 180px; min-width: 150px; }" + ".contour-subject-summary__col-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }" + ".contour-subject-summary__list { margin: 0; padding-left: 18px; font-size: 13px; }" + ".contour-subject-summary__list li { margin-bottom: 4px; }" + ".contour-form-loader { display: flex; flex-direction: column; align-items: center; padding: 60px 0; }" + ".contour-form-loader__spinner { width: 36px; height: 36px; border: 4px solid #e3e0d8; border-top-color: #1a1a2e; border-radius: 50%; animation: contour-spin 0.8s linear infinite; }" + "@keyframes contour-spin { to { transform: rotate(360deg); } }" + ".contour-form-loader__text { margin-top: 12px; font-size: 14px; }";
     document.head.appendChild(style);
   }
   function getClassification(inputEl) {
@@ -790,6 +790,45 @@ var ContourForm1Logic = function() {
   var EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   var prefetchedTrialSubjectCodes = [];
   var prefetchedEnrolledSubjectCodes = [];
+  function startUrlPrefetch() {
+    if (!PREFETCH_ENDPOINT) return null;
+    var studentId = getUrlParam(STUDENT_ID_PARAM);
+    if (!studentId) return null;
+    var request = fetch(PREFETCH_ENDPOINT + "/prefetch?studentId=" + encodeURIComponent(studentId)).then(function(res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    }).catch(function(err) {
+      console.warn("Contour Form 1 logic: URL prefetch failed —", err);
+      return null;
+    });
+    var timeout = new Promise(function(resolve) {
+      setTimeout(function() {
+        resolve(null);
+      }, 8000);
+    });
+    return Promise.race([request, timeout]);
+  }
+  var urlPrefetchPromise = startUrlPrefetch();
+  function showFormLoader() {
+    if (document.getElementById("contour-form-loader")) return;
+    var loader = document.createElement("div");
+    loader.id = "contour-form-loader";
+    loader.className = "contour-form-loader";
+    var spinner = document.createElement("div");
+    spinner.className = "contour-form-loader__spinner";
+    loader.appendChild(spinner);
+    var text = document.createElement("p");
+    text.className = "contour-form-loader__text";
+    text.textContent = "Fetching your details…";
+    loader.appendChild(text);
+    formRoot.parentNode.insertBefore(loader, formRoot);
+    formRoot.style.display = "none";
+  }
+  function hideFormLoader() {
+    var loader = document.getElementById("contour-form-loader");
+    if (loader && loader.parentNode) loader.parentNode.removeChild(loader);
+    formRoot.style.removeProperty("display");
+  }
   function splitMultiValue(raw) {
     if (!raw) return [];
     return String(raw).split(";").map(function(s) {
@@ -903,25 +942,21 @@ var ContourForm1Logic = function() {
     formRoot.insertBefore(banner, formRoot.firstChild);
   }
   function initPrefetchFromUrl() {
-    if (!PREFETCH_ENDPOINT) return;
-    var studentId = getUrlParam(STUDENT_ID_PARAM);
-    if (!studentId) return;
-    fetch(PREFETCH_ENDPOINT + "/prefetch?studentId=" + encodeURIComponent(studentId)).then(function(res) {
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      return res.json();
-    }).then(function(data) {
-      if (!data || !data.found || !data.contact) return;
-      prefetchedTrialSubjectCodes = data.trialSubjectCodes || [];
-      prefetchedEnrolledSubjectCodes = data.enrolledSubjectCodes || [];
-      applyPrefill(data.contact);
-      var fullName = ((data.contact.firstname || "") + " " + (data.contact.lastname || "")).trim();
-      renderPrefillBanner(fullName);
-      if (prefetchedTrialSubjectCodes.length > 0 || prefetchedEnrolledSubjectCodes.length > 0) {
-        setFieldLabelText("interestedSubjects", "Additional Subjects");
+    if (!urlPrefetchPromise) return;
+    showFormLoader();
+    urlPrefetchPromise.then(function(data) {
+      if (data && data.found && data.contact) {
+        prefetchedTrialSubjectCodes = data.trialSubjectCodes || [];
+        prefetchedEnrolledSubjectCodes = data.enrolledSubjectCodes || [];
+        applyPrefill(data.contact);
+        var fullName = ((data.contact.firstname || "") + " " + (data.contact.lastname || "")).trim();
+        renderPrefillBanner(fullName);
+        if (prefetchedTrialSubjectCodes.length > 0 || prefetchedEnrolledSubjectCodes.length > 0) {
+          setFieldLabelText("interestedSubjects", "Additional Subjects");
+        }
+        renderSubjectSummary();
       }
-      renderSubjectSummary();
-    }).catch(function(err) {
-      console.warn("Contour Form 1 logic: URL prefetch failed —", err);
+      hideFormLoader();
     });
   }
   function prefetchPost(path, payload) {
