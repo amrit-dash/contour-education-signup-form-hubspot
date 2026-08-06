@@ -921,6 +921,16 @@ var ContourForm1Logic = function() {
     qAll('input[type="checkbox"]').forEach(function(opt) {
       setCheckboxChecked(opt, false);
     });
+    qAll('input[type="radio"]').forEach(function(radio) {
+      if (!radio.checked) return;
+      radio.checked = false;
+      radio.dispatchEvent(new Event("input", {
+        bubbles: true
+      }));
+      radio.dispatchEvent(new Event("change", {
+        bubbles: true
+      }));
+    });
     qAll("select").forEach(function(sel) {
       if (!sel.value) return;
       sel.value = "";
