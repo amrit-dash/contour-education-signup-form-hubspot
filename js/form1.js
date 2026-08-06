@@ -571,9 +571,17 @@ var ContourForm1Logic = function() {
     }
     var schoolInput = q(FIELD_SELECTORS.schoolText);
     if (schoolInput) {
-      schoolInput.disabled = !intake;
+      var location = getValue(FIELD_SELECTORS.location);
+      schoolInput.disabled = !intake || !location;
       setFieldLabelText("schoolText", intake ? "School in " + intake : "Current School");
     }
+  }
+  function injectDisabledFieldStyles() {
+    if (document.getElementById("contour-disabled-field-styles")) return;
+    var style = document.createElement("style");
+    style.id = "contour-disabled-field-styles";
+    style.textContent = ".hs-form select:disabled, .hs-form input:disabled { opacity: 0.55; background-color: #f1f0ec; cursor: not-allowed; }";
+    document.head.appendChild(style);
   }
   function getClassification(inputEl) {
     if (subjectClassificationCache.has(inputEl)) {
@@ -780,6 +788,13 @@ var ContourForm1Logic = function() {
     anz: "https://calendly.com/contourmedprep/welcome-consultation-anz",
     uk: "https://calendly.com/contourmedprep/welcome-consultation-uk"
   };
+  function isTestprepSelected() {
+    var checkedSubjects = qAll(FIELD_SELECTORS.interestedSubjects + ":checked");
+    for (var i = 0; i < checkedSubjects.length; i++) {
+      if (getClassification(checkedSubjects[i]).program === "TestPrep") return true;
+    }
+    return false;
+  }
   function isUcatSelected() {
     var checkedSubjects = qAll(FIELD_SELECTORS.interestedSubjects + ":checked");
     for (var i = 0; i < checkedSubjects.length; i++) {
@@ -836,11 +851,18 @@ var ContourForm1Logic = function() {
   }
   function renderWelcomeConsultation() {
     var wrapper = ensureWelcomeConsultationContainer();
-    if (!isUcatSelected()) {
+    var ucat = isUcatSelected();
+    var testprep = isTestprepSelected();
+    if (!ucat && !testprep) {
       wrapper.style.display = "none";
       return;
     }
     wrapper.style.display = "";
+    var copyEl = wrapper.querySelector(".contour-welcome-consultation__copy");
+    if (copyEl) {
+      var audience = ucat && testprep ? "UCAT and Selective Entry" : ucat ? "UCAT" : "Selective Entry";
+      copyEl.textContent = "New " + audience + " students are required to book a Welcome Consultation before a trial can be booked. Please register your consultation below before completing the rest of this form.";
+    }
     var location = getValue(FIELD_SELECTORS.location);
     var isUk = location === UK_TOKEN;
     var baseUrl = isUk ? CALENDLY_URLS.uk : CALENDLY_URLS.anz;
@@ -871,6 +893,7 @@ var ContourForm1Logic = function() {
         evaluateCampusOptions();
         evaluateYearLevelOptions();
         evaluateSchoolFieldVisibility();
+        evaluateIntakeYearDependents();
         renderWelcomeConsultation();
       });
     }
@@ -1276,6 +1299,7 @@ var ContourForm1Logic = function() {
     formRoot = formElement;
     enhanceProgramInterestCards();
     enhanceInterestedSubjectsCategories();
+    injectDisabledFieldStyles();
     enhanceSchoolSearch();
     watchSchoolFieldRerender();
     enhanceCampusLabels();
