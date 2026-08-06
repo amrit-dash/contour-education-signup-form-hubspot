@@ -539,6 +539,42 @@ var ContourForm1Logic = function() {
       if (acaraInput && acaraInput.value) setHiddenValue(FIELD_SELECTORS.acaraId, "");
     }
   }
+  function setFieldLabelText(fieldSelectorKey, text) {
+    var field = q(FIELD_SELECTORS[fieldSelectorKey]);
+    var wrap = field ? fieldWrapper(field) : null;
+    if (!wrap) return;
+    var label = wrap.querySelector("label");
+    if (!label) return;
+    var spans = label.querySelectorAll("span");
+    for (var i = 0; i < spans.length; i++) {
+      if (!/hs-form-required/.test(spans[i].className)) {
+        spans[i].textContent = text;
+        return;
+      }
+    }
+    var node = label.firstChild;
+    while (node && node.nodeType !== 3) node = node.nextSibling;
+    if (node) node.nodeValue = text; else label.insertBefore(document.createTextNode(text), label.firstChild);
+  }
+  function evaluateIntakeYearDependents() {
+    var intake = getValue(FIELD_SELECTORS.intakeYear);
+    var yearSelect = q(FIELD_SELECTORS.yearLevel);
+    if (yearSelect) {
+      yearSelect.disabled = !intake;
+      if (!intake && yearSelect.value) {
+        yearSelect.value = "";
+        yearSelect.dispatchEvent(new Event("change", {
+          bubbles: true
+        }));
+      }
+      setFieldLabelText("yearLevel", intake ? "Year level in " + intake : "Current Year Level");
+    }
+    var schoolInput = q(FIELD_SELECTORS.schoolText);
+    if (schoolInput) {
+      schoolInput.disabled = !intake;
+      setFieldLabelText("schoolText", intake ? "School in " + intake : "Current School");
+    }
+  }
   function getClassification(inputEl) {
     if (subjectClassificationCache.has(inputEl)) {
       return subjectClassificationCache.get(inputEl);
@@ -864,6 +900,7 @@ var ContourForm1Logic = function() {
         evaluateProgramInterestOptions();
         evaluateInterestedSubjectsOptions();
         evaluateYearLevelOptions();
+        evaluateIntakeYearDependents();
       });
     }
   }
@@ -1109,6 +1146,7 @@ var ContourForm1Logic = function() {
       var input = q(FIELD_SELECTORS.schoolText);
       if (input && !input.closest(".contour-school-search")) {
         enhanceSchoolSearch();
+        evaluateIntakeYearDependents();
       }
     });
     observer.observe(formRoot, {
@@ -1259,6 +1297,7 @@ var ContourForm1Logic = function() {
     evaluateCampusOptions();
     evaluateYearLevelOptions();
     evaluateSchoolFieldVisibility();
+    evaluateIntakeYearDependents();
     renderWelcomeConsultation();
   }
   return {
