@@ -1,3 +1,4 @@
+/* Contour Form 1 logic — source of truth: github.com/amrit-dash/contour-education-signup-form-hubspot */
 var ContourForm1Logic = function() {
   "use strict";
   var FIELD_SELECTORS = {
