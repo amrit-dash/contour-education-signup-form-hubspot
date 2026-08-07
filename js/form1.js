@@ -895,29 +895,64 @@ var ContourForm1Logic = function() {
       setTextWhenPresent(selector, value, tries - 1);
     }, 150);
   }
+  var PHONE_DIAL_CODES = [["971", "ae"], ["977", "np"], ["880", "bd"], ["852", "hk"], ["94", "lk"], ["91", "in"], ["92", "pk"], ["86", "cn"], ["81", "jp"], ["82", "kr"], ["65", "sg"], ["60", "my"], ["62", "id"], ["63", "ph"], ["66", "th"], ["61", "au"], ["64", "nz"], ["44", "gb"], ["49", "de"], ["33", "fr"], ["39", "it"], ["34", "es"], ["27", "za"], ["55", "br"], ["52", "mx"], ["1", "us"]];
+  function splitE164(value) {
+    if (!value || value.charAt(0) !== "+") return null;
+    var digits = value.slice(1).replace(/\D/g, "");
+    for (var i = 0; i < PHONE_DIAL_CODES.length; i++) {
+      var dial = PHONE_DIAL_CODES[i][0];
+      if (digits.indexOf(dial) === 0) {
+        return {
+          dial: dial,
+          iso: PHONE_DIAL_CODES[i][1],
+          national: digits.slice(dial.length)
+        };
+      }
+    }
+    return null;
+  }
+  function fireInputEvents(inp) {
+    inp.dispatchEvent(new Event("input", {
+      bubbles: true
+    }));
+    inp.dispatchEvent(new Event("change", {
+      bubbles: true
+    }));
+  }
   function setPhoneValue(selector, value) {
     if (!value) return;
     var el = q(selector);
     if (!el) return;
-    // HubSpot's intl phone widget pairs a hidden E.164 input with a visible
-    // national-number input — write the full value to every input in the
-    // field so the widget re-parses the dial code and syncs its country
-    // selector.
     var wrap = fieldWrapper(el) || el.parentElement;
-    var inputs = wrap ? Array.prototype.slice.call(wrap.querySelectorAll("input")) : [el];
-    if (inputs.length === 0) inputs = [el];
-    inputs.forEach(function(inp) {
-      inp.value = value;
-      inp.dispatchEvent(new Event("input", {
-        bubbles: true
-      }));
-      inp.dispatchEvent(new Event("change", {
-        bubbles: true
-      }));
-      inp.dispatchEvent(new Event("blur", {
-        bubbles: true
-      }));
-    });
+    var select = wrap ? wrap.querySelector("select") : null;
+    var parts = splitE164(value);
+    if (select && parts) {
+      var matched = false;
+      Array.prototype.forEach.call(select.options, function(opt) {
+        if (matched) return;
+        var v = (opt.value || "").toLowerCase();
+        if (v === parts.iso || v === parts.dial || v === "+" + parts.dial || v.indexOf(parts.iso + "_") === 0 || v.indexOf("_" + parts.dial) !== -1) {
+          select.value = opt.value;
+          matched = true;
+        }
+      });
+      if (matched) {
+        fireInputEvents(select);
+        var inputs = Array.prototype.slice.call(wrap.querySelectorAll("input"));
+        inputs.forEach(function(inp) {
+          // Hidden input carries the full E.164 value for submission; the
+          // visible one only holds the national number.
+          inp.value = inp.type === "hidden" ? value : parts.national;
+          fireInputEvents(inp);
+        });
+        return;
+      }
+    }
+    el.value = value;
+    fireInputEvents(el);
+    el.dispatchEvent(new Event("blur", {
+      bubbles: true
+    }));
   }
   function applyPrefill(contact, guardian, associatedStudent) {
     var contactType = contact.contact_type;
