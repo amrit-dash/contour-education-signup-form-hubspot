@@ -9,9 +9,14 @@ const ENROLMENTS_OBJECT_TYPE = "deals";
 const SUBJECT_CODE_PROPERTY = "subject_code";
 
 const CONTACT_PROPERTIES = [
+  "contact_type",
   "web_form_contact_type",
   "firstname",
   "lastname",
+  "student_first_name",
+  "student_last_name",
+  "student_email",
+  "student_phone",
   "email",
   "email_2",
   "phone",
@@ -71,31 +76,34 @@ async function hubspotBatchRead(objectType, ids, properties) {
   return data.results || [];
 }
 
-async function associatedGuardian(contactId) {
+async function associatedPeople(contactId) {
   const assoc = await hubspotGet(
     `/crm/v4/objects/contacts/${contactId}/associations/contacts?limit=100`
   );
   const results = (assoc && assoc.results) || [];
-  let guardianId = null;
-  for (const r of results) {
-    const labels = (r.associationTypes || []).map((t) => t.label || "");
-    if (labels.some((l) => /primary\s*guardian/i.test(l))) {
-      guardianId = r.toObjectId;
-      break;
-    }
-    if (!guardianId && labels.some((l) => /guardian/i.test(l))) {
-      guardianId = r.toObjectId;
-    }
-  }
-  if (!guardianId) return null;
-  const records = await hubspotBatchRead("contacts", [guardianId], [
+  if (results.length === 0) return { guardian: null, student: null };
+  const ids = [...new Set(results.map((r) => String(r.toObjectId)))];
+  const records = await hubspotBatchRead("contacts", ids, [
     "firstname",
     "lastname",
     "email",
     "email_2",
-    "phone"
+    "phone",
+    "contact_type"
   ]);
-  return records[0] ? records[0].properties || null : null;
+  const byId = new Map(records.map((r) => [String(r.id), r.properties || {}]));
+  let guardian = null;
+  let student = null;
+  for (const r of results) {
+    const props = byId.get(String(r.toObjectId));
+    if (!props) continue;
+    const labels = (r.associationTypes || []).map((t) => t.label || "");
+    const guardianish =
+      labels.some((l) => /guardian/i.test(l)) || props.contact_type === "Guardian";
+    if (!guardian && guardianish) guardian = props;
+    if (!student && props.contact_type === "Student") student = props;
+  }
+  return { guardian, student };
 }
 
 async function associatedSubjectCodes(contactId, objectType) {
@@ -137,26 +145,29 @@ functions.http("prefetch", async (req, res) => {
     );
     if (!contact) return res.json({ found: false });
 
-    const [trialSubjectCodes, enrolledSubjectCodes, guardian] = await Promise.all([
+    const [trialSubjectCodes, enrolledSubjectCodes, people] = await Promise.all([
       associatedSubjectCodes(studentId, TRIALS_OBJECT_TYPE),
       associatedSubjectCodes(studentId, ENROLMENTS_OBJECT_TYPE),
-      associatedGuardian(studentId)
+      associatedPeople(studentId)
     ]);
 
     const props = contact.properties || {};
     const out = {};
     for (const p of CONTACT_PROPERTIES) out[p] = props[p] || "";
 
+    const person = (p) => p ? {
+      firstname: p.firstname || "",
+      lastname: p.lastname || "",
+      email: p.email || "",
+      email_2: p.email_2 || "",
+      phone: p.phone || ""
+    } : null;
+
     return res.json({
       found: true,
       contact: out,
-      guardian: guardian ? {
-        firstname: guardian.firstname || "",
-        lastname: guardian.lastname || "",
-        email: guardian.email || "",
-        email_2: guardian.email_2 || "",
-        phone: guardian.phone || ""
-      } : null,
+      guardian: person(people.guardian),
+      associatedStudent: person(people.student),
       trialSubjectCodes,
       enrolledSubjectCodes
     });

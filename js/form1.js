@@ -895,27 +895,57 @@ var ContourForm1Logic = function() {
       setTextWhenPresent(selector, value, tries - 1);
     }, 150);
   }
-  function applyPrefill(contact, guardian) {
-    if (contact.web_form_contact_type) {
+  function setPhoneValue(selector, value) {
+    if (!value) return;
+    var el = q(selector);
+    if (!el) return;
+    // HubSpot's intl phone widget pairs a hidden E.164 input with a visible
+    // national-number input — write the full value to every input in the
+    // field so the widget re-parses the dial code and syncs its country
+    // selector.
+    var wrap = fieldWrapper(el) || el.parentElement;
+    var inputs = wrap ? Array.prototype.slice.call(wrap.querySelectorAll("input")) : [el];
+    if (inputs.length === 0) inputs = [el];
+    inputs.forEach(function(inp) {
+      inp.value = value;
+      inp.dispatchEvent(new Event("input", {
+        bubbles: true
+      }));
+      inp.dispatchEvent(new Event("change", {
+        bubbles: true
+      }));
+      inp.dispatchEvent(new Event("blur", {
+        bubbles: true
+      }));
+    });
+  }
+  function applyPrefill(contact, guardian, associatedStudent) {
+    var contactType = contact.contact_type;
+    if (contactType === "Student" || contactType === "Guardian") {
       qAll(FIELD_SELECTORS.contactType).forEach(function(radio) {
-        if (radio.value === contact.web_form_contact_type) setCheckboxChecked(radio, true);
+        if (radio.value === contactType) setCheckboxChecked(radio, true);
       });
     }
-    if (contact.web_form_contact_type === "Guardian") {
-      var g = guardian || {};
-      setSelectOrTextValue('[name="firstname"]', g.firstname);
-      setSelectOrTextValue('[name="lastname"]', g.lastname);
-      setSelectOrTextValue(FIELD_SELECTORS.emailTemp, g.email_2 || g.email);
-      setSelectOrTextValue('[name="phone"]', g.phone);
-      setTextWhenPresent('[name="student_first_name"]', contact.firstname, 10);
-      setTextWhenPresent('[name="student_last_name"]', contact.lastname, 10);
-      setTextWhenPresent('[name="student_email"]', contact.email_2 || contact.email, 10);
-      setTextWhenPresent('[name="student_phone"]', contact.phone, 10);
+    if (contactType === "Guardian") {
+      setSelectOrTextValue('[name="firstname"]', contact.firstname);
+      setSelectOrTextValue('[name="lastname"]', contact.lastname);
+      setSelectOrTextValue(FIELD_SELECTORS.emailTemp, contact.email_2 || contact.email);
+      setPhoneValue('[name="phone"]', contact.phone);
+      var s = associatedStudent || {
+        firstname: contact.student_first_name,
+        lastname: contact.student_last_name,
+        email: contact.student_email,
+        phone: contact.student_phone
+      };
+      setTextWhenPresent('[name="student_first_name"]', s.firstname, 10);
+      setTextWhenPresent('[name="student_last_name"]', s.lastname, 10);
+      setTextWhenPresent('[name="student_email"]', s.email_2 || s.email, 10);
+      setTextWhenPresent('[name="student_phone"]', s.phone, 10);
     } else {
       setSelectOrTextValue('[name="firstname"]', contact.firstname);
       setSelectOrTextValue('[name="lastname"]', contact.lastname);
       setSelectOrTextValue(FIELD_SELECTORS.emailTemp, contact.email_2 || contact.email);
-      setSelectOrTextValue('[name="phone"]', contact.phone);
+      setPhoneValue('[name="phone"]', contact.phone);
     }
     setSelectOrTextValue(FIELD_SELECTORS.location, contact.state_territory_country);
     setSelectOrTextValue(FIELD_SELECTORS.intakeYear, contact.which_year_are_you_interested_in_tutoring_for_);
@@ -984,7 +1014,7 @@ var ContourForm1Logic = function() {
       if (data && data.found && data.contact) {
         prefetchedTrialSubjectCodes = data.trialSubjectCodes || [];
         prefetchedEnrolledSubjectCodes = data.enrolledSubjectCodes || [];
-        applyPrefill(data.contact, data.guardian);
+        applyPrefill(data.contact, data.guardian, data.associatedStudent);
         var fullName = ((data.contact.firstname || "") + " " + (data.contact.lastname || "")).trim();
         renderPrefillBanner(fullName);
         if (prefetchedTrialSubjectCodes.length > 0 || prefetchedEnrolledSubjectCodes.length > 0) {
