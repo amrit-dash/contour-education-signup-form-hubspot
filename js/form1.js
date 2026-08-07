@@ -580,7 +580,7 @@ var ContourForm1Logic = function() {
     if (document.getElementById("contour-disabled-field-styles")) return;
     var style = document.createElement("style");
     style.id = "contour-disabled-field-styles";
-    style.textContent = ".hs-form select:disabled, .hs-form input:disabled { opacity: 0.55; background-color: #f1f0ec; cursor: not-allowed; }" + ".contour-prefill-offer { margin-top: 8px; padding: 12px; border: 1px solid #d8d5cc; border-radius: 8px; background: #faf9f6; }" + ".contour-prefill-offer__message { margin: 0 0 8px; font-size: 14px; }" + ".contour-prefill-offer__code-row { display: flex; gap: 8px; align-items: center; }" + ".contour-prefill-offer__code-input { max-width: 140px; }" + ".contour-prefill-offer__confirm { cursor: pointer; }" + ".contour-prefill-offer__error { margin: 8px 0 0; color: #b3261e; font-size: 13px; }" + ".contour-prefill-banner { margin: 0 0 16px; padding: 12px 16px; border: 1px solid #cfe3cf; border-radius: 8px; background: #f2f8f2; }" + ".contour-prefill-banner__text { margin: 0 0 6px; font-size: 14px; }" + ".contour-prefill-banner__reset { font-size: 13px; text-decoration: underline; cursor: pointer; }" + ".contour-subject-summary { margin: 20px 0; padding: 16px; border: 1px solid #d8d5cc; border-radius: 8px; background: #faf9f6; }" + ".contour-subject-summary__heading { font-weight: 600; margin-bottom: 10px; }" + ".contour-subject-summary__grid { display: flex; flex-wrap: wrap; gap: 20px; }" + ".contour-subject-summary__col { flex: 1 1 180px; min-width: 150px; }" + ".contour-subject-summary__col-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }" + ".contour-subject-summary__list { margin: 0; padding-left: 18px; font-size: 13px; }" + ".contour-subject-summary__list li { margin-bottom: 4px; }" + ".contour-form-loader { display: flex; flex-direction: column; align-items: center; padding: 60px 0; }" + ".contour-form-loader__spinner { width: 36px; height: 36px; border: 4px solid #e3e0d8; border-top-color: #1a1a2e; border-radius: 50%; animation: contour-spin 0.8s linear infinite; }" + "@keyframes contour-spin { to { transform: rotate(360deg); } }" + ".contour-form-loader__text { margin-top: 12px; font-size: 14px; }";
+    style.textContent = ".hs-form select:disabled, .hs-form input:disabled { opacity: 0.55; background-color: #f1f0ec; cursor: not-allowed; }" + ".contour-prefill-offer { margin-top: 8px; padding: 12px; border: 1px solid #d8d5cc; border-radius: 8px; background: #faf9f6; }" + ".contour-prefill-offer__message { margin: 0 0 8px; font-size: 14px; }" + ".contour-prefill-offer__code-row { display: flex; gap: 8px; align-items: center; }" + ".contour-prefill-offer__code-input { max-width: 140px; }" + ".contour-prefill-offer__confirm { cursor: pointer; }" + ".contour-prefill-offer__error { margin: 8px 0 0; color: #b3261e; font-size: 13px; }" + ".contour-prefill-banner { display: flex; align-items: flex-start; gap: 14px; margin: 0 0 24px; padding: 18px 22px; border: 1px solid rgba(12, 49, 102, 0.12); border-radius: 16px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(12, 49, 102, 0.06); }" + ".contour-prefill-banner__badge { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: #D7FC3D; color: #0C3166; font-size: 15px; font-weight: 700; }" + ".contour-prefill-banner__content { flex: 1; min-width: 0; }" + ".contour-prefill-banner__title { margin: 0 0 2px; font-size: 15px; font-weight: 700; color: #0C3166; }" + ".contour-prefill-banner__text { margin: 0 0 8px; font-size: 13.5px; line-height: 1.45; color: #6b7280; }" + ".contour-prefill-banner__reset { display: inline-block; font-size: 13px; font-weight: 600; color: #0C3166; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }" + ".contour-prefill-banner__reset:hover { color: #0540F2; }" + ".contour-subject-summary { margin: 24px 0; padding: 20px 22px; border: 1px solid rgba(12, 49, 102, 0.12); border-radius: 16px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(12, 49, 102, 0.06); }" + ".contour-subject-summary__heading { font-size: 15px; font-weight: 700; color: #0C3166; margin-bottom: 14px; }" + ".contour-subject-summary__grid { display: flex; flex-wrap: wrap; gap: 24px; }" + ".contour-subject-summary__col { flex: 1 1 180px; min-width: 160px; }" + ".contour-subject-summary__col-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6b7280; margin-bottom: 8px; }" + ".contour-subject-summary__chips { display: flex; flex-wrap: wrap; gap: 6px; }" + ".contour-subject-chip { display: inline-block; padding: 5px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; line-height: 1.3; }" + ".contour-subject-chip--navy { background: #092749; color: #FFFFFF; }" + ".contour-subject-chip--lime { background: #D7FC3D; color: #0C3166; }" + ".contour-subject-chip--blue { background: #007AFF; color: #FFFFFF; }" + ".contour-form-loader { display: flex; flex-direction: column; align-items: center; padding: 60px 0; }" + ".contour-form-loader__spinner { width: 36px; height: 36px; border: 4px solid #e3e0d8; border-top-color: #1a1a2e; border-radius: 50%; animation: contour-spin 0.8s linear infinite; }" + "@keyframes contour-spin { to { transform: rotate(360deg); } }" + ".contour-form-loader__text { margin-top: 12px; font-size: 14px; }";
     document.head.appendChild(style);
   }
   function getClassification(inputEl) {
@@ -947,7 +947,18 @@ var ContourForm1Logic = function() {
     });
     qAll('input[type="radio"]').forEach(function(radio) {
       if (!radio.checked) return;
-      radio.checked = false;
+      // HubSpot's embed controls inputs internally — a plain property write
+      // gets reverted, so go through the native setter then fire the events
+      // its delegated listeners expect.
+      var descriptor = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "checked");
+      if (descriptor && descriptor.set) {
+        descriptor.set.call(radio, false);
+      } else {
+        radio.checked = false;
+      }
+      radio.dispatchEvent(new Event("click", {
+        bubbles: true
+      }));
       radio.dispatchEvent(new Event("input", {
         bubbles: true
       }));
@@ -993,19 +1004,31 @@ var ContourForm1Logic = function() {
     var banner = document.createElement("div");
     banner.id = "contour-prefill-banner";
     banner.className = "contour-prefill-banner";
+    var badge = document.createElement("span");
+    badge.className = "contour-prefill-banner__badge";
+    badge.setAttribute("aria-hidden", "true");
+    badge.textContent = "✓";
+    banner.appendChild(badge);
+    var content = document.createElement("div");
+    content.className = "contour-prefill-banner__content";
+    var title = document.createElement("p");
+    title.className = "contour-prefill-banner__title";
+    title.textContent = fullName ? "Welcome back, " + fullName : "Welcome back";
+    content.appendChild(title);
     var text = document.createElement("p");
     text.className = "contour-prefill-banner__text";
-    text.textContent = "This form has been prefilled" + (fullName ? " for " + fullName : "") + " from our records. Please review the details before submitting.";
-    banner.appendChild(text);
+    text.textContent = "We've prefilled your details from your previous signup — please review them before submitting.";
+    content.appendChild(text);
     var resetLink = document.createElement("a");
     resetLink.href = "#";
     resetLink.className = "contour-prefill-banner__reset";
-    resetLink.textContent = "Not you, or want to start fresh? Clear the form.";
+    resetLink.textContent = "Not you, or starting fresh? Clear the form";
     resetLink.addEventListener("click", function(e) {
       e.preventDefault();
       clearFormForNewUser();
     });
-    banner.appendChild(resetLink);
+    content.appendChild(resetLink);
+    banner.appendChild(content);
     formRoot.insertBefore(banner, formRoot.firstChild);
   }
   function initPrefetchFromUrl() {
@@ -1247,11 +1270,17 @@ var ContourForm1Logic = function() {
     var grid = document.createElement("div");
     grid.className = "contour-subject-summary__grid";
     container.appendChild(grid);
-    var submitBlock = formRoot.querySelector(".hs-submit");
-    if (submitBlock && submitBlock.parentNode) {
-      submitBlock.parentNode.insertBefore(container, submitBlock);
+    var subjectsField = q(FIELD_SELECTORS.interestedSubjects);
+    var subjectsWrap = subjectsField ? fieldWrapper(subjectsField) : null;
+    if (subjectsWrap && subjectsWrap.parentNode) {
+      subjectsWrap.parentNode.insertBefore(container, subjectsWrap.nextSibling);
     } else {
-      formRoot.appendChild(container);
+      var submitBlock = formRoot.querySelector(".hs-submit");
+      if (submitBlock && submitBlock.parentNode) {
+        submitBlock.parentNode.insertBefore(container, submitBlock);
+      } else {
+        formRoot.appendChild(container);
+      }
     }
     return container;
   }
@@ -1265,13 +1294,16 @@ var ContourForm1Logic = function() {
     var enrolled = prefetchedEnrolledSubjectCodes.map(subjectCodeToLabel);
     var columns = [{
       title: "Interested Subject" + (interested.length === 1 ? "" : "s"),
-      items: interested
+      items: interested,
+      chipClass: "contour-subject-chip--navy"
     }, {
       title: "Trialing Subject" + (trialing.length === 1 ? "" : "s"),
-      items: trialing
+      items: trialing,
+      chipClass: "contour-subject-chip--lime"
     }, {
       title: "Enrolled Subject" + (enrolled.length === 1 ? "" : "s"),
-      items: enrolled
+      items: enrolled,
+      chipClass: "contour-subject-chip--blue"
     }];
     grid.innerHTML = "";
     var anyColumn = false;
@@ -1284,14 +1316,15 @@ var ContourForm1Logic = function() {
       title.className = "contour-subject-summary__col-title";
       title.textContent = col.title;
       colEl.appendChild(title);
-      var list = document.createElement("ul");
-      list.className = "contour-subject-summary__list";
+      var chips = document.createElement("div");
+      chips.className = "contour-subject-summary__chips";
       col.items.forEach(function(label) {
-        var li = document.createElement("li");
-        li.textContent = label;
-        list.appendChild(li);
+        var chip = document.createElement("span");
+        chip.className = "contour-subject-chip " + col.chipClass;
+        chip.textContent = label;
+        chips.appendChild(chip);
       });
-      colEl.appendChild(list);
+      colEl.appendChild(chips);
       grid.appendChild(colEl);
     });
     container.style.display = anyColumn ? "" : "none";
