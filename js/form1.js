@@ -941,63 +941,6 @@ var ContourForm1Logic = function() {
     var match = new RegExp("[?&]" + name + "=([^&#]*)").exec(window.location.search);
     return match ? decodeURIComponent(match[1].replace(/\+/g, " ")) : "";
   }
-  function clearFormForNewUser() {
-    qAll('input[type="checkbox"]').forEach(function(opt) {
-      setCheckboxChecked(opt, false);
-    });
-    qAll('input[type="radio"]').forEach(function(radio) {
-      if (!radio.checked) return;
-      // HubSpot's embed controls inputs internally — a plain property write
-      // gets reverted, so go through the native setter then fire the events
-      // its delegated listeners expect.
-      var descriptor = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "checked");
-      if (descriptor && descriptor.set) {
-        descriptor.set.call(radio, false);
-      } else {
-        radio.checked = false;
-      }
-      radio.dispatchEvent(new Event("click", {
-        bubbles: true
-      }));
-      radio.dispatchEvent(new Event("input", {
-        bubbles: true
-      }));
-      radio.dispatchEvent(new Event("change", {
-        bubbles: true
-      }));
-    });
-    qAll("select").forEach(function(sel) {
-      if (!sel.value) return;
-      sel.value = "";
-      sel.dispatchEvent(new Event("change", {
-        bubbles: true
-      }));
-    });
-    qAll('input[type="text"], input[type="email"], input[type="tel"], input[type="number"]').forEach(function(inp) {
-      if (!inp.value) return;
-      inp.value = "";
-      inp.dispatchEvent(new Event("input", {
-        bubbles: true
-      }));
-      inp.dispatchEvent(new Event("change", {
-        bubbles: true
-      }));
-    });
-    prefetchedTrialSubjectCodes = [];
-    prefetchedEnrolledSubjectCodes = [];
-    pendingPrefill = null;
-    setFieldLabelText("interestedSubjects", "Interested Subjects");
-    var banner = formRoot.querySelector("#contour-prefill-banner");
-    if (banner) banner.parentNode.removeChild(banner);
-    evaluateProgramInterestOptions();
-    evaluateInterestedSubjectsOptions();
-    evaluateCampusOptions();
-    evaluateYearLevelOptions();
-    evaluateSchoolFieldVisibility();
-    evaluateIntakeYearDependents();
-    renderWelcomeConsultation();
-    renderSubjectSummary();
-  }
   function renderPrefillBanner(fullName) {
     var existing = formRoot.querySelector("#contour-prefill-banner");
     if (existing) existing.parentNode.removeChild(existing);
@@ -1007,7 +950,7 @@ var ContourForm1Logic = function() {
     var badge = document.createElement("span");
     badge.className = "contour-prefill-banner__badge";
     badge.setAttribute("aria-hidden", "true");
-    badge.textContent = "✓";
+    badge.innerHTML = '<svg viewBox="0 0 16 16" width="15" height="15" xmlns="http://www.w3.org/2000/svg"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="#0C3166" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     banner.appendChild(badge);
     var content = document.createElement("div");
     content.className = "contour-prefill-banner__content";
@@ -1025,7 +968,10 @@ var ContourForm1Logic = function() {
     resetLink.textContent = "Not you, or starting fresh? Clear the form";
     resetLink.addEventListener("click", function(e) {
       e.preventDefault();
-      clearFormForNewUser();
+      // A DOM-level reset fights HubSpot's internal form state (radios get
+      // restored on re-render) — reloading without the student_id param
+      // guarantees a pristine blank form.
+      window.location.href = window.location.pathname;
     });
     content.appendChild(resetLink);
     banner.appendChild(content);
